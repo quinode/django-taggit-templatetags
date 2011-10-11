@@ -19,6 +19,7 @@ register = template.Library()
 
 def get_queryset(forvar=None):
     count_field = None
+
     if forvar is None:
         # get all tags
         queryset = Tag.objects.all()
@@ -33,7 +34,6 @@ def get_queryset(forvar=None):
             except ValueError:
                 applabel = forvar
         applabel = applabel.lower()
-        model = model.lower()
         
         # filter tagged items        
         if model is None:
@@ -43,9 +43,15 @@ def get_queryset(forvar=None):
             queryset = Tag.objects.filter(id__in=tag_ids)
         else:
             # Get tags for a model
+            model = model.lower()
+            if ":" in model:
+                model, manager_attr = model.split(":", 1)
+            else:
+                manager_attr = "tags"
             model_class = get_model(applabel, model)
-            queryset = model_class.tags.all()
-            through_opts = model_class.tags.through._meta
+            manager = getattr(model_class, manager_attr)
+            queryset = manager.all()
+            through_opts = manager.through._meta
             count_field = ("%s_%s_items" % (through_opts.app_label,
                     through_opts.object_name)).lower()
 
