@@ -1,6 +1,7 @@
 from django import template
 from django.db import models
 from django.db.models import Count
+from django.db.models.loading import get_model
 from django.core.exceptions import FieldError
 
 from templatetag_sugar.register import tag
@@ -17,7 +18,8 @@ T_MIN = getattr(settings, 'TAGCLOUD_MIN', 1.0)
 register = template.Library()
 
 def get_queryset(forvar=None):
-    if None == forvar:
+    count_field = None
+    if forvar is None:
         # get all tags
         queryset = Tag.objects.all()
     else:
@@ -30,24 +32,34 @@ def get_queryset(forvar=None):
                 applabel, model = forvar.rsplit('.', 1)
             except ValueError:
                 applabel = forvar
+        applabel = applabel.lower()
+        model = model.lower()
         
         # filter tagged items        
-        if applabel:
-            queryset = TaggedItem.objects.filter(content_type__app_label=applabel.lower())
-        if model:
-            queryset = queryset.filter(content_type__model=model.lower())
-            
-        # get tags
-        tag_ids = queryset.values_list('tag_id', flat=True)
-        queryset = Tag.objects.filter(id__in=tag_ids)
+        if model is None:
+            # Get tags for a whole app
+            queryset = TaggedItem.objects.filter(content_type__app_label=applabel)
+            tag_ids = queryset.values_list('tag_id', flat=True)
+            queryset = Tag.objects.filter(id__in=tag_ids)
+        else:
+            # Get tags for a model
+            model_class = get_model(applabel, model)
+            queryset = model_class.tags.all()
+            through_opts = model_class.tags.through._meta
+            count_field = ("%s_%s_items" % (through_opts.app_label,
+                    through_opts.object_name)).lower()
 
-    # Retain compatibility with older versions of Django taggit
-    # a version check (for example taggit.VERSION <= (0,8,0)) does NOT
-    # work because of the version (0,8,0) of the current dev version of django-taggit
-    try:
-        return queryset.annotate(num_times=Count('taggeditem_items'))
-    except FieldError:
-        return queryset.annotate(num_times=Count('taggit_taggeditem_items'))
+    if count_field is None:
+        # Retain compatibility with older versions of Django taggit
+        # a version check (for example taggit.VERSION <= (0,8,0)) does NOT
+        # work because of the version (0,8,0) of the current dev version of django-taggit
+        try:
+            return queryset.annotate(num_times=Count('taggeditem_items'))
+        except FieldError:
+            return queryset.annotate(num_times=Count('taggit_taggeditem_items'))
+    else:
+        return queryset.annotate(num_times=Count(count_field))
+
 
 def get_weight_fun(t_min, t_max, f_min, f_max):
     def weight_fun(f_i, t_min=t_min, t_max=t_max, f_min=f_min, f_max=f_max):
