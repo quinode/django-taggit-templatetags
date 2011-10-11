@@ -44,10 +44,14 @@ For the tags of an app, just do::
 
     {% get_taglist as tags for 'yourapp' %}
     
-For the tags of an model, just do::
+For the tags of a model, just do::
 
     {% get_taglist as tags for 'yourapp.yourmodel' %}
+
+You can also customize the name of the tags manager in your model (the default is *tags*)::
     
+    {% get_taglist as tags for 'yourapp.yourmodel:yourtags' %}
+
 No matter what you do, you have a list of tags in the ``tags`` template variable. You can now iterate over it::
 
     <ul>
