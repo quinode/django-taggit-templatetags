@@ -15,6 +15,14 @@ from taggit_templatetags import settings
 T_MAX = getattr(settings, 'TAGCLOUD_MAX', 6.0)
 T_MIN = getattr(settings, 'TAGCLOUD_MIN', 1.0)
 
+from django.db.models.loading import get_model
+
+_TAG         = getattr(settings,'TAG_MODEL',('taggit','Tag'))
+_TAGGED_ITEM = getattr(settings,'TAGGED_ITEM_MODEL',('taggit','TaggedItem'))
+TAG          = get_model(_TAG[0],_TAG[1])
+TAGGED_ITEM  = get_model(_TAGGED_ITEM[0],_TAGGED_ITEM[1])
+
+
 register = template.Library()
 
 def get_queryset(forvar=None):
@@ -22,7 +30,7 @@ def get_queryset(forvar=None):
 
     if forvar is None:
         # get all tags
-        queryset = Tag.objects.all()
+        queryset = TAG.objects.all()
     else:
         # extract app label and model name
         beginning, applabel, model = None, None, None
@@ -38,9 +46,9 @@ def get_queryset(forvar=None):
         # filter tagged items        
         if model is None:
             # Get tags for a whole app
-            queryset = TaggedItem.objects.filter(content_type__app_label=applabel)
+            queryset = TAGGED_ITEM.objects.filter(content_type__app_label=applabel)
             tag_ids = queryset.values_list('tag_id', flat=True)
-            queryset = Tag.objects.filter(id__in=tag_ids)
+            queryset = TAG.objects.filter(id__in=tag_ids)
         else:
             # Get tags for a model
             model = model.lower()
@@ -59,8 +67,9 @@ def get_queryset(forvar=None):
         # Retain compatibility with older versions of Django taggit
         # a version check (for example taggit.VERSION <= (0,8,0)) does NOT
         # work because of the version (0,8,0) of the current dev version of django-taggit
+        relname = TAGGED_ITEM._meta.get_field_by_name('tag')[0].rel.related_name
         try:
-            return queryset.annotate(num_times=Count('taggeditem_items'))
+            return queryset.annotate(num_times=Count(relname))
         except FieldError:
             return queryset.annotate(num_times=Count('taggit_taggeditem_items'))
     else:

@@ -113,6 +113,12 @@ If you want to use the weight as font-sizes, just do as follows::
     
 So the weights are converted to integer values.
 
+If you're using your own Tag and/or TaggedItem models rather than the default ones (`Custom Tagging`_), you can specify a tuple for each model (app,model_name)
+
+TAGGIT_TAG_MODEL           = ('myapp','MyTag')
+TAGGIT_TAGGED_ITEM_MODEL   = ('myapp','MyTaggedItem')
+
+
 Thanks
 ======
 
@@ -122,3 +128,4 @@ Thanks to the python- and django-community, in particular to `Alex Gaynor`_, the
 .. _tagcloud: http://www.wikipedia.org/wiki/Tagcloud
 .. _Alex Gaynor: http://alexgaynor.net/
 .. _Mathijs de Bruin: http://github.com/dokterbob
+.. _Custom Tagging: http://django-taggit.readthedocs.org/en/latest/custom_tagging.html
