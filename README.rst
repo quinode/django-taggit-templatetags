@@ -115,8 +115,8 @@ So the weights are converted to integer values.
 
 If you're using your own Tag and/or TaggedItem models rather than the default ones (`Custom Tagging`_), you can specify a tuple for each model (app,model_name)
 
-TAGGIT_TAG_MODEL           = ('myapp','MyTag')
-TAGGIT_TAGGED_ITEM_MODEL   = ('myapp','MyTaggedItem')
+TAGGIT_TAG_MODEL = ('myapp','MyTag')
+TAGGIT_TAGGED_ITEM_MODEL = ('myapp','MyTaggedItem')
 
 
 Thanks
