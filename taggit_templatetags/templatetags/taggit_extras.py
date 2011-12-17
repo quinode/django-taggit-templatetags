@@ -17,10 +17,10 @@ T_MIN = getattr(settings, 'TAGCLOUD_MIN', 1.0)
 
 from django.db.models.loading import get_model
 
-_TAG         = getattr(settings,'TAG_MODEL',('taggit','Tag'))
-_TAGGED_ITEM = getattr(settings,'TAGGED_ITEM_MODEL',('taggit','TaggedItem'))
-TAG          = get_model(_TAG[0],_TAG[1])
-TAGGED_ITEM  = get_model(_TAGGED_ITEM[0],_TAGGED_ITEM[1])
+_TAG = getattr(settings, 'TAG_MODEL', ('taggit','Tag'))
+_TAGGED_ITEM = getattr(settings, 'TAGGED_ITEM_MODEL', ('taggit','TaggedItem'))
+TAG = get_model(_TAG[0], _TAG[1])
+TAGGED_ITEM = get_model(_TAGGED_ITEM[0], _TAGGED_ITEM[1])
 
 
 register = template.Library()
