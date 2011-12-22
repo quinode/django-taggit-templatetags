@@ -13,5 +13,4 @@ TAG_MODEL = get_model(*TAG_MODEL)
 TAGGED_ITEM_MODEL = getattr(settings, 'TAGGIT_TAGGED_ITEM_MODEL', \
                             ('taggit','TaggedItem'))
 TAGGED_ITEM_MODEL = get_model(*TAGGED_ITEM_MODEL)
-
-
+TAG_FIELD_RELATED_NAME = getattr(settings, 'TAGGIT_TAG_FIELD_RELATED_NAME','taggeditem_items')

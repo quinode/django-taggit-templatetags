@@ -59,10 +59,8 @@ def get_queryset(forvar=None):
         # Retain compatibility with older versions of Django taggit
         # a version check (for example taggit.VERSION <= (0,8,0)) does NOT
         # work because of the version (0,8,0) of the current dev version of django-taggit
-        relname = settings.TAGGED_ITEM_MODEL._meta.get_field_by_name('tag')\
-                                                        [0].rel.related_name
         try:
-            return queryset.annotate(num_times=Count(relname))
+            return queryset.annotate(num_times=Count(settings.TAG_FIELD_RELATED_NAME))
         except FieldError:
             return queryset.annotate(num_times=Count('taggit_taggeditem_items'))
     else:
@@ -77,19 +75,23 @@ def get_weight_fun(t_min, t_max, f_min, f_max):
             mult_fac = 1.0
         else:
             mult_fac = float(t_max-t_min)/float(f_max-f_min)
-            
         return t_max - (f_max-f_i)*mult_fac
     return weight_fun
 
-@tag(register, [Constant('as'), Name(), Optional([Constant('for'), Variable()])])
-def get_taglist(context, asvar, forvar=None):
+@tag(register,[Constant('as'), Name(), 
+               Optional([Constant('for'), Variable()]), 
+               Optional([Constant('limit'), Variable()])
+               ])
+def get_taglist(context, asvar, forvar=None, limit=10):
     queryset = get_queryset(forvar)         
     queryset = queryset.order_by('-num_times')        
     context[asvar] = queryset
+    if limit:
+        queryset = queryset[:limit]
     return ''
 
-@tag(register, [Constant('as'), Name(), Optional([Constant('for'), Variable()])])
-def get_tagcloud(context, asvar, forvar=None):
+@tag(register, [Constant('as'), Name(), Optional([Constant('for'), Variable()]), Optional([Constant('limit'), Variable()]),])
+def get_tagcloud(context, asvar, forvar=None, limit=None):
     queryset = get_queryset(forvar)
     num_times = queryset.values_list('num_times', flat=True)
     if(len(num_times) == 0):
@@ -97,10 +99,33 @@ def get_tagcloud(context, asvar, forvar=None):
         return ''
     weight_fun = get_weight_fun(T_MIN, T_MAX, min(num_times), max(num_times))
     queryset = queryset.order_by('name')
+    if limit:
+        queryset = queryset[:limit]
     for tag in queryset:
         tag.weight = weight_fun(tag.num_times)
     context[asvar] = queryset
     return ''
+ 
+# method from
+# https://github.com/dokterbob/django-taggit-templatetags/commit/fe893ac1c93d58cd122c621804f311430c93dc12  
+# {% get_similar_obects to product as similar_videos for metaphore.embeddedvideo %}
+@tag(register, [Constant('to'), Variable(), Constant('as'), Name(), Optional([Constant('for'), Model()])])
+def get_similar_objects(context, tovar, asvar, forvar=None):
+    if forvar:
+        assert hasattr(tovar, 'tags')
+        tags = tovar.tags.all()
+        from django.contrib.contenttypes.models import ContentType
+        ct = ContentType.objects.get_for_model(forvar)
+        items = TaggedItem.objects.filter(content_type=ct, tag__in=tags)
+        from django.db.models import Count
+        ordered = items.values('object_id').annotate(Count('object_id')).order_by()
+        ordered_ids = map(lambda x: x['object_id'], ordered)
+        objects = ct.model_class().objects.filter(pk__in=ordered_ids)
+    else:
+        objects = tovar.tags.similar_objects()
+    context[asvar] = objects    
+    return ''    
+
     
 def include_tagcloud(forvar=None):
     return {'forvar': forvar}
