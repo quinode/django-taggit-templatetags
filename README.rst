@@ -3,6 +3,8 @@ Instructions
 ============
 
 This is a reusable django app which adds some templatetags to django-taggit_.
+This particular fork uses another version of django-templatetag-sugar_, by Jonas Geiregat, because only his version allows to give multiples arguments to a templatetag.
+For example, here we are using the 'count' argument to limit the number of tags in the queryset.
 
 Installation
 ============
@@ -38,19 +40,23 @@ After loading ``taggit_extras`` you can create a list of tags for the whole proj
 
 For the tags of a project, just do::
 
-    {% get_taglist as tags %}
-    
+    {% get_taglist asvar tags %}
+
+To limit the number of tags::
+
+    {% get_taglist asvar tags count 25 %}
+   
 For the tags of an app, just do::
 
-    {% get_taglist as tags for 'yourapp' %}
+    {% get_taglist asvar tags for 'yourapp' %}
     
 For the tags of a model, just do::
 
-    {% get_taglist as tags for 'yourapp.yourmodel' %}
+    {% get_taglist asvar tags for 'yourapp.yourmodel' %}
 
 You can also customize the name of the tags manager in your model (the default is *tags*)::
     
-    {% get_taglist as tags for 'yourapp.yourmodel:yourtags' %}
+    {% get_taglist asvar tags for 'yourapp.yourmodel:yourtags' %}
 
 No matter what you do, you have a list of tags in the ``tags`` template variable. You can now iterate over it::
 
@@ -117,7 +123,8 @@ Thanks
 ======
 
 Thanks to the python- and django-community, in particular to `Alex Gaynor`_, the inventor of django-taggit_ and a wonderful guy to argue with. Thanks to `Mathijs de Bruin`_ as well for his helpful pull requests.
- 
+
+.. _django-templatetag-sugar : https://github.com/jonasgeiregat/django-templatetag-sugar 
 .. _django-taggit: http://pypi.python.org/pypi/django-taggit
 .. _tagcloud: http://www.wikipedia.org/wiki/Tagcloud
 .. _Alex Gaynor: http://alexgaynor.net/
