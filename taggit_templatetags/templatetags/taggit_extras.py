@@ -1,11 +1,11 @@
 from django import template
 from django.db import models
 from django.db.models import Count
-from django.db.models.loading import get_model
 from django.core.exceptions import FieldError
+from django.db.models.loading import get_model
 
 from templatetag_sugar.register import tag
-from templatetag_sugar.parser import Name, Variable, Constant, Optional, Model
+from templatetag_sugar.parser import Variable, Optional, Model, Required
 
 from taggit import VERSION as TAGGIT_VERSION
 from taggit.managers import TaggableManager
@@ -19,10 +19,9 @@ register = template.Library()
 
 def get_queryset(forvar=None):
     count_field = None
-
     if forvar is None:
         # get all tags
-        queryset = Tag.objects.all()
+        queryset = settings.TAG_MODEL.objects.all()
     else:
         # extract app label and model name
         beginning, applabel, model = None, None, None
@@ -35,10 +34,10 @@ def get_queryset(forvar=None):
                 applabel = forvar
         applabel = applabel.lower()
         
-        # filter tagged items        
+        # filter tagged items  
         if model is None:
             # Get tags for a whole app
-            queryset = TaggedItem.objects.filter(content_type__app_label=applabel)
+            queryset = settings.TAGGED_ITEM_MODEL.objects.filter(content_type__app_label=applabel)
             tag_ids = queryset.values_list('tag_id', flat=True)
             queryset = Tag.objects.filter(id__in=tag_ids)
         else:
@@ -56,15 +55,11 @@ def get_queryset(forvar=None):
                     through_opts.object_name)).lower()
 
     if count_field is None:
-        # Retain compatibility with older versions of Django taggit
-        # a version check (for example taggit.VERSION <= (0,8,0)) does NOT
-        # work because of the version (0,8,0) of the current dev version of django-taggit
-        try:
-            return queryset.annotate(num_times=Count('taggeditem_items'))
-        except FieldError:
-            return queryset.annotate(num_times=Count('taggit_taggeditem_items'))
+        relname = settings.TAGGED_ITEM_MODEL._meta.get_field_by_name('tag')[0].rel.related_name
+        return queryset.annotate(num_times=Count(relname))
     else:
         return queryset.annotate(num_times=Count(count_field))
+
 
 
 def get_weight_fun(t_min, t_max, f_min, f_max):
@@ -79,22 +74,29 @@ def get_weight_fun(t_min, t_max, f_min, f_max):
         return t_max - (f_max-f_i)*mult_fac
     return weight_fun
 
-@tag(register, [Constant('as'), Name(), Optional([Constant('for'), Variable()])])
-def get_taglist(context, asvar, forvar=None):
+@tag(register, {Required('asvar'): Variable(), Optional('for'): Variable(), Optional('count'): Variable()}) 
+def get_taglist(context, asvar, forvar=None, count=None):
     queryset = get_queryset(forvar)         
     queryset = queryset.order_by('-num_times')        
-    context[asvar] = queryset
+    if count:
+        context[asvar] = queryset[:int(count)]
+    else:
+        context[asvar] = queryset
+        
     return ''
 
-@tag(register, [Constant('as'), Name(), Optional([Constant('for'), Variable()])])
-def get_tagcloud(context, asvar, forvar=None):
+@tag(register, {Optional('as'): Variable(), Optional('for'): Variable(), Optional('count'): Variable()})
+def get_tagcloud(context, asvar=None, forvar=None, count=None):
     queryset = get_queryset(forvar)
     num_times = queryset.values_list('num_times', flat=True)
     if(len(num_times) == 0):
         context[asvar] = queryset
         return ''
     weight_fun = get_weight_fun(T_MIN, T_MAX, min(num_times), max(num_times))
-    queryset = queryset.order_by('name')
+    if count:
+        queryset = queryset.order_by('name')[:int(count)-1]
+    else:
+        queryset = queryset.order_by('name')
     for tag in queryset:
         tag.weight = weight_fun(tag.num_times)
     context[asvar] = queryset

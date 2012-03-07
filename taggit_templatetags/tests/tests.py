@@ -2,8 +2,7 @@ from django.test import TestCase
 from django.template import Context, Template
 from django.template.loader import get_template
 
-from taggit_templatetags.tests.models import (AlphaModel, BetaModel,
-        CharPkModel, AnotherCharPkModel)
+from taggit_templatetags.tests.models import AlphaModel, BetaModel
 from taggit.tests.tests import BaseTaggingTest
 
 from taggit_templatetags.templatetags.taggit_extras import get_weight_fun
@@ -215,27 +214,3 @@ class GammaPathologicalCaseTestCase(TestCase, BaseTaggingTest):
         t.render(c)
         self.assert_tags_equal(c.get("tags"), [], False)
         
-class CustomThroughModelTestCase(TestCase, BaseTaggingTest):
-    """
-    Test tags with a custom 'through' parameter.
-    """
-
-    def setUp(self):
-        a1 = CharPkModel.objects.create()
-        a1.tags.add("green")
-        a1.tags.add("blue")
-        a2 = AnotherCharPkModel.objects.create()
-        a2.ttaaggss.add("yellow")
-        a2.ttaaggss.add("orange")
-
-    def test_default_tags_name(self):
-        t = get_template('taggit_templatetags/tagcloud_include.html')
-        c = Context({'forvar': 'tests.CharPkModel'})
-        t.render(c)
-        self.assert_tags_equal(c.get("tags"), ["blue", "green"], False)
-
-    def test_custom_tags_name(self):
-        t = get_template('taggit_templatetags/tagcloud_include.html')
-        c = Context({'forvar': 'tests.AnotherCharPkModel:ttaaggss'})
-        t.render(c)
-        self.assert_tags_equal(c.get("tags"), ["orange", "yellow"], False)
