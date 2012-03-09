@@ -1,5 +1,4 @@
 from django import template
-from django.db import models
 from django.db.models import Count
 from django.core.exceptions import FieldError
 from django.db.models.loading import get_model
@@ -8,8 +7,6 @@ from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Variable, Optional, Model, Required
 
 from taggit import VERSION as TAGGIT_VERSION
-from taggit.managers import TaggableManager
-from taggit.models import TaggedItem, Tag
 from taggit_templatetags import settings
 
 T_MAX = getattr(settings, 'TAGCLOUD_MAX', 6.0)
@@ -21,6 +18,7 @@ def get_queryset(forvar=None):
     count_field = None
     if forvar is None:
         # get all tags
+        # tagged_things = settings.TAGGED_ITEM_MODEL.objects.all().distinct
         queryset = settings.TAG_MODEL.objects.all()
     else:
         # extract app label and model name
@@ -39,7 +37,7 @@ def get_queryset(forvar=None):
             # Get tags for a whole app
             queryset = settings.TAGGED_ITEM_MODEL.objects.filter(content_type__app_label=applabel)
             tag_ids = queryset.values_list('tag_id', flat=True)
-            queryset = Tag.objects.filter(id__in=tag_ids)
+            queryset = settings.TAG_MODEL.objects.filter(id__in=tag_ids)
         else:
             # Get tags for a model
             model = model.lower()
@@ -55,6 +53,7 @@ def get_queryset(forvar=None):
                     through_opts.object_name)).lower()
 
     if count_field is None:
+        # if 
         relname = settings.TAGGED_ITEM_MODEL._meta.get_field_by_name('tag')[0].rel.related_name
         return queryset.annotate(num_times=Count(relname))
     else:
@@ -74,9 +73,12 @@ def get_weight_fun(t_min, t_max, f_min, f_max):
         return t_max - (f_max-f_i)*mult_fac
     return weight_fun
 
-@tag(register, {Required('asvar'): Variable(), Optional('for'): Variable(), Optional('count'): Variable()}) 
-def get_taglist(context, asvar, forvar=None, count=None):
-    queryset = get_queryset(forvar)         
+@tag(register, {Required('asvar'): Variable(), Optional('for_obj'): Variable(), Optional('count'): Variable()}) 
+def get_taglist(context, asvar, for_obj=None, count=None):
+    print asvar
+    print for_obj
+    print count
+    queryset = get_queryset(for_obj)         
     queryset = queryset.order_by('-num_times')        
     if count:
         context[asvar] = queryset[:int(count)]
