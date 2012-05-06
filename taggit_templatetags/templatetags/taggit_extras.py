@@ -50,7 +50,7 @@ def get_queryset(forvar=None):
             queryset = manager.all()
             through_opts = manager.through._meta
             count_field = ("%s_%s_items" % (through_opts.app_label,
-                    through_opts.object_name)).lower()
+                    through_opts.object_name)).lower() #old style
 
     if count_field is None:
         # if 
@@ -75,9 +75,9 @@ def get_weight_fun(t_min, t_max, f_min, f_max):
 
 @tag(register, {Required('asvar'): Variable(), Optional('for_obj'): Variable(), Optional('count'): Variable()}) 
 def get_taglist(context, asvar, for_obj=None, count=None):
-    print asvar
-    print for_obj
-    print count
+    # print asvar
+    # print for_obj
+    # print count
     queryset = get_queryset(for_obj)         
     queryset = queryset.order_by('-num_times')        
     if count:
